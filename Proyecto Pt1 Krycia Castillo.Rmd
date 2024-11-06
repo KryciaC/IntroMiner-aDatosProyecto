@@ -1,0 +1,226 @@
+#Proyecto PT1 - Krycia Castillo
+Minería de Datos
+```{r}
+#En este proyecto se están utilizando los datos disponibles en la página del INE (Instituto Nacional de Estadística de Guatemala), se muestra los datos sobre los servicios internos de los distintos hospitales, sanatorios y casas de salud del sector privado. Los datos disponibles son de 2009 a 2022. 
+```
+
+
+```{r}
+#Se procede a instalar y llamar las librerías necesarias para realizar este proyecto, conforme se avanza en el proyecto se agregarán las liberías correspondientes:
+install.packages("haven")
+library(haven)
+library(arules)
+library(fim4r)
+library(dplyr)
+```
+
+```{r}
+#Se cargan los datos, los cuales están disponibles en un archivo por año. Los archivos se encuentran en formato SPSS (.sav), se procede a leer los archivos utilizando read_sav para lo cual se debe instalar previamente la librería "haven". En este caso el notebook de R se ha guardado en la misma carpeta donde están los archivos por lo cual no se especifica la ubicación del archivo, unicamente el nombre, en caso que el archivo esté en otra carpeta se debe especificar la ubicación:
+
+data2009 <- read_sav("Datos 2009.sav")
+data2010 <- read_sav("Datos 2010.sav")
+data2011 <- read_sav("Datos 2011.sav")
+data2012 <- read_sav("Datos 2012.sav")
+data2013 <- read_sav("Datos 2013.sav")
+data2014 <- read_sav("Datos 2014.sav")
+data2015 <- read_sav("Datos 2015.sav")
+data2016 <- read_sav("Datos 2016.sav")
+data2017 <- read_sav("Datos 2017.sav")
+data2018 <- read_sav("Datos 2018.sav")
+data2019 <- read_sav("Datos 2019.sav")
+data2020 <- read_sav("Datos 2020.sav")
+data2021 <- read_sav("Datos 2021.sav")
+data2022 <- read_sav("Datos 2022.sav")
+
+##Revisamos la estructura de los datos:
+str(data2009)
+str(data2010)
+str(data2011)
+str(data2012)
+str(data2013)
+str(data2014)
+str(data2015)
+str(data2016)
+str(data2017)
+str(data2018)
+str(data2019)
+str(data2020)
+str(data2021)
+str(data2022)
+
+```
+
+```{r}
+#Al revisar los datos se identifican algunas diferencias por lo cual se procede a hacer modificaciones para luego unir los datos en un solo dataset:
+
+##La columna Tratamiento recibido tiene el nombre incorrecto para 2010:
+data2010 <- data2010 %>%
+  rename(TRATARECIB = `TRATRECIB`)
+
+#Adicionalmente se identificó que las etiquetas para esta columna son diferentes en 2010 a comparación de los otros años, se modifica para que coincidan al unir los datos:
+
+attr(data2010$TRATARECIB, "labels") <- c("Médico" = 1, "Cirugía" = 2, "Obstétrico"= 3)
+
+```
+
+```{r}
+##Entre 2009 y 2017 se registraba el grupo étnico de las personas clasificandolos entre "Índigena", "No indígena" o "Ignorado", a partir de 2018 se registra el pueblo de pertenencia el cual se clasifica en "Maya" "Garífuna" "Xinca" "Mestizo/ Ladino", "Otro", "Ignorado". Debemos unificar esta información para que todos los años tengan los mismos códigos, para iniciar se procederá a modificar el nombre de las columnas para los años de 2009 a 2017:
+
+data2009 <- data2009 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2009$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+
+data2010 <- data2010 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2010$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+
+data2011 <- data2011 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2011$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+
+data2012 <- data2012 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2012$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+
+data2013 <- data2013 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2013$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+
+data2014 <- data2014 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2014$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+
+data2015 <- data2015 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2015$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+
+data2016 <- data2016 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2016$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+
+data2017 <- data2017 %>%
+  rename(PPERTENENCIA = `GRUPETNICO`)
+
+attr(data2017$PPERTENENCIA, "label") <- "Pueblo de pertenencia"
+```
+
+```{r}
+## Se procederá a modificar los códigos de indígina y no indígena para los años del 2009 al 2017, se les asignará el código Indígena - 6 y No indígena - 7, Ignorado no se modifica debido a que mantienen el mismo código - necesitamos la librería dplyr. De igual forma se renombran las etiquetas para cada código:
+
+data2009 <- data2009 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2009$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+data2010 <- data2010 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2010$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+data2011 <- data2011 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2011$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+data2012 <- data2012 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2012$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+data2013 <- data2013 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2013$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+data2014 <- data2014 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2014$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+data2015 <- data2015 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2015$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+data2016 <- data2016 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2016$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+data2017 <- data2017 %>%
+  mutate(PPERTENENCIA = case_when(
+    PPERTENENCIA == 1 ~ 6,  # Indígena -> 6
+    PPERTENENCIA == 2 ~ 7,  # No indígena -> 7
+    TRUE ~ PPERTENENCIA    # Mantener otros valores
+  )) 
+attr(data2017$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, "Ignorado" = 9)
+
+```
+
+```{r}
+##Posterior a realizar estas modificaciones, vamos a unir los años en un único dataset - necesitamos la librería dplyr y usamos bind_rows:
+
+data <- bind_rows(data2009, data2010, data2011, data2012, data2013, data2014, data2015, data2016, data2017, data2018, data2019, data2020, data2021, data2022)
+
+str(data)
+
+#Vamos a proceder a guardar el dataset completo para tenerlo de respaldo en caso sea necesario:
+
+write_sav(data, "C:/Users/lmpgp/Downloads/Kry/ProyectoP1/Datos/data.sav")
+```
+
+```{r}
+##Debido a que la edad se muestra en 2 columnas, EDAD donde se muestra el valor numérico de la edad y PERIODOEDA donde se indica si son días, meses o años. Para facilidad en el análisis posterior se procederá agregar una nueva columna donde todas las edades se muestren en años:
+
+data <- data %>%
+  mutate(EDADAÑOS = case_when(
+    PERIODOEDA == 1 ~ round(EDAD / 365),  # Convertir días a años y redondear
+    PERIODOEDA == 2 ~ round(EDAD / 12),   # Convertir meses a años y redondear
+    PERIODOEDA == 3 ~ EDAD,               # Mantener años como están
+    PERIODOEDA == 9 ~ EDAD,               # Si está ignorado, mantener el valor original
+  ))
+
+##Eliminamos las columnas de EDAD y PERIODOEDA:
+
+data <- data %>%
+  select(-EDAD, -PERIODOEDA)
+
+data <- data %>%
+  select(AÑO, MES, DIASESTANCIA, SEXO, PPERTENENCIA, EDADAÑOS, everything())
+```
+
+
+
+
