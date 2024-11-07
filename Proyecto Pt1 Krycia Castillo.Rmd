@@ -221,6 +221,39 @@ data <- data %>%
   select(AÑO, MES, DIASESTANCIA, SEXO, PPERTENENCIA, EDADAÑOS, everything())
 ```
 
+```{r}
+#Procedemos a aplicar el algoritmo a priori en todo el dataset - para este algoritmo necesitamos la librería Arules:
+
+reglasap <- apriori(data, parameter = list(support=0.2, confidence=0.5 ))
+reglasfAp <- as(reglasap, "data.frame")
+
+```
 
 
+```{r}
+#En este apartado procedimos a sustituir los valores 9999 y 999 con NA para verificar si hay alguna diferencia en las reglas obtenidas y se aplica de nuevo el algoritmo apriori:
+
+dataNA <- data %>%
+  mutate(across(where(is.numeric), ~ na_if(., 9999))) %>%  
+  mutate(across(where(is.numeric), ~ na_if(., 999))) 
+
+reglasap2 <- apriori(dataNA, parameter = list(support=0.2, confidence=0.5 ))
+reglasfAp2 <- as(reglasap2, "data.frame")
+
+##De acuerdo con lo observado se decide filtrar el dataset solamente para considerar el sexo femenino debido a que se observa más reglas relacionadas al sexo femenino:
+dataNAM <- subset (dataNA, SEXO == 2)
+
+dataNAM2 <- dataNAM %>%
+  select(-SEXO)
+
+reglasapM <- apriori(dataNAM2, parameter = list(support=0.2, confidence=0.5 ))
+reglasfAp3 <- as(reglasapM, "data.frame")
+```
+
+```{r}
+#Comenzamos a aplicar el algoritmo FPgrowth para analizar el data set, para realizar este análisis necesitamos la librería fim4r (tomar en cuenta que para instalar esta librería se debe instalar previamente RTools de la versión correspondiente de R):
+
+reglasfp <- fim4r(dataNA, method = "fpgrowth", target="rules", supp = .2, conf = .5)
+reglasffp <- as(reglasfp, "data.frame")
+```
 
