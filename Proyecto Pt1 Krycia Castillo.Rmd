@@ -237,6 +237,9 @@ dataNA <- data %>%
   mutate(across(where(is.numeric), ~ na_if(., 9999))) %>%  
   mutate(across(where(is.numeric), ~ na_if(., 999))) 
 
+dataNA$DEPTORESIDEN[dataNA$ DEPTORESIDEN == 99] <- NA
+dataNA$MUNIRESIDEN[dataNA$ MUNIRESIDEN == "9999"] <- NA
+
 reglasap2 <- apriori(dataNA, parameter = list(support=0.2, confidence=0.5 ))
 reglasfAp2 <- as(reglasap2, "data.frame")
 
@@ -251,9 +254,29 @@ reglasfAp3 <- as(reglasapM, "data.frame")
 ```
 
 ```{r}
-#Comenzamos a aplicar el algoritmo FPgrowth para analizar el data set, para realizar este análisis necesitamos la librería fim4r (tomar en cuenta que para instalar esta librería se debe instalar previamente RTools de la versión correspondiente de R):
+##De acuerdo con lo observado se decide filtrar el dataset solamente para considerar el sexo femenino, departamentos del 1 al 8 y entre los años 2018 y 2022 debido a que se observa más reglas relacionadas con estas condiciones :
+dataNAFiltro <- subset (dataNA, SEXO == 2 & DEPTORESIDEN >= 1 & DEPTORESIDEN <=8 & AÑO >= 2018 & AÑO <= 2022 )
+
+#Se elimina la columna sexo debido a que todos los valores serán femenino (2) para aplicar los algoritmos 
+dataNAM <- dataNAFiltro %>%
+  select(-SEXO)
+
+reglasapM <- apriori(dataNAM, parameter = list(support=0.2, confidence=0.5 ))
+reglasfAp3 <- as(reglasapM, "data.frame")
+```
+
+
+```{r}
+#Comenzamos a aplicar el algoritmo FPgrowth para analizar todo data set, para realizar este análisis necesitamos la librería fim4r (tomar en cuenta que para instalar esta librería se debe instalar previamente RTools de la versión correspondiente de R):
 
 reglasfp <- fim4r(dataNA, method = "fpgrowth", target="rules", supp = .2, conf = .5)
 reglasffp <- as(reglasfp, "data.frame")
+```
+
+```{r}
+#Vamos a aplicar el algoritmo fpgrowth a los datos filtados dataNAM:
+
+reglasfp2 <- fim4r(dataNAM, method = "fpgrowth", target="rules", supp = .2, conf = .5)
+reglasffp2 <- as(reglasfp2, "data.frame")
 ```
 
