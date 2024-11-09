@@ -12,6 +12,7 @@ library(haven)
 library(arules)
 library(fim4r)
 library(dplyr)
+library(ggplot2)
 ```
 
 ```{r}
@@ -32,6 +33,9 @@ data2020 <- read_sav("Datos 2020.sav")
 data2021 <- read_sav("Datos 2021.sav")
 data2022 <- read_sav("Datos 2022.sav")
 
+```
+
+```{r}
 ##Revisamos la estructura de los datos:
 str(data2009)
 str(data2010)
@@ -47,8 +51,8 @@ str(data2019)
 str(data2020)
 str(data2021)
 str(data2022)
-
 ```
+
 
 ```{r}
 #Al revisar los datos se identifican algunas diferencias por lo cual se procede a hacer modificaciones para luego unir los datos en un solo dataset:
@@ -190,15 +194,92 @@ attr(data2017$PPERTENENCIA, "labels") <- c("Indígena" = 6, "No indígena" = 7, 
 ```
 
 ```{r}
+#Se revisan los las variables de los diferentes años para identificar diferencias:
+summary(data)
+
+table(data2009$DEPTORESIDEN)
+table(data2010$DEPTORESIDEN)
+table(data2011$DEPTORESIDEN)
+table(data2012$DEPTORESIDEN)
+table(data2013$DEPTORESIDEN)
+table(data2014$DEPTORESIDEN)
+table(data2015$DEPTORESIDEN)
+table(data2016$DEPTORESIDEN)
+table(data2017$DEPTORESIDEN)
+table(data2018$DEPTORESIDEN)
+table(data2019$DEPTORESIDEN)
+table(data2020$DEPTORESIDEN)
+table(data2021$DEPTORESIDEN)
+table(data2022$DEPTORESIDEN)
+
+table(data2009$MUNIRESIDEN)
+table(data2010$MUNIRESIDEN)
+table(data2011$MUNIRESIDEN)
+table(data2012$MUNIRESIDEN)
+table(data2013$MUNIRESIDEN)
+table(data2014$MUNIRESIDEN)
+table(data2015$MUNIRESIDEN)
+table(data2016$MUNIRESIDEN)
+table(data2017$MUNIRESIDEN)
+table(data2018$MUNIRESIDEN)
+table(data2019$MUNIRESIDEN)
+table(data2020$MUNIRESIDEN)
+table(data2021$MUNIRESIDEN)
+table(data2022$MUNIRESIDEN)
+
+table(data2009$DIASESTANCIA)
+table(data2010$DIASESTANCIA)
+table(data2011$DIASESTANCIA)
+table(data2012$DIASESTANCIA)
+table(data2013$DIASESTANCIA)
+table(data2014$DIASESTANCIA)
+table(data2015$DIASESTANCIA)
+table(data2016$DIASESTANCIA)
+table(data2017$DIASESTANCIA)
+table(data2018$DIASESTANCIA)
+table(data2019$DIASESTANCIA)
+table(data2020$DIASESTANCIA)
+table(data2021$DIASESTANCIA)
+table(data2022$DIASESTANCIA)
+
+table(data$SEXO)
+table(data$PPERTENENCIA)
+table(data$TRATARECIB)
+table(data$DEPTORESIDEN)
+table(data$CONDIEGRES)
+table(data$AÑO)
+table(data$MES)
+table(data$DIASESTANCIA)
+```
+
+
+```{r}
+##Luego de revisar los datos se ha idenficado que en el año 2009 se presentan registros con números que no tienen un significado de acuerdo con el diccionario para la variable DEPTORESIDEN por lo cual se procede a eliminarlos:
+
+data2009 <- data2009[!(data2009$DEPTORESIDEN >= 30 & data2009$DEPTORESIDEN <= 81), ]
+
+## Se ha identificado algunos municipios que no corresponden a ninguno de los códigos asignados por lo cual se procede a eliminarlos:
+data2010 <- data2010[!(data2010$MUNIRESIDEN %in% c("2301", "2302", "2304","2305" ,"2308" ,"9909")), ]
+data2014 <- data2014[!(data2014$MUNIRESIDEN == "2303"), ]
+
+## En la data de 2009 se ha identificado registros con días de estancia muy superiores a lo indicado en el diccionario, se procederá a eliminarlos ya que se considera que pueden ser datos erroneos ya que en los años siguientes no se encuentran datos similares:
+data2009 <- data2009[!(data2009$DIASESTANCIA >= 106 & data2009$DIASESTANCIA <= 9991), ]
+
+
+```
+
+
+```{r}
 ##Posterior a realizar estas modificaciones, vamos a unir los años en un único dataset - necesitamos la librería dplyr y usamos bind_rows:
 
 data <- bind_rows(data2009, data2010, data2011, data2012, data2013, data2014, data2015, data2016, data2017, data2018, data2019, data2020, data2021, data2022)
 
 str(data)
 
-#Vamos a proceder a guardar el dataset completo para tenerlo de respaldo en caso sea necesario:
+#Vamos a proceder a guardar el dataset completo para tenerlo de respaldo en caso sea necesario, en este punto se debe especificar la ubicación donde se va a guardar el archivo y el nombr:
 
-write_sav(data, "C:/Users/lmpgp/Downloads/Kry/ProyectoP1/Datos/data.sav")
+write_sav(data, "C:/Users/KRYCIA C/Documents/CienciadeComputacion/4to_Trimestre/Mineríadedatos/Tareas/ProyectoP1/Datos/data.sav")
+
 ```
 
 ```{r}
@@ -219,8 +300,10 @@ data <- data %>%
 
 data <- data %>%
   select(AÑO, MES, DIASESTANCIA, SEXO, PPERTENENCIA, EDADAÑOS, everything())
+
 ```
 
+#Apriori
 ```{r}
 #Procedemos a aplicar el algoritmo a priori en todo el dataset - para este algoritmo necesitamos la librería Arules:
 
@@ -229,7 +312,6 @@ reglasfAp <- as(reglasap, "data.frame")
 
 ```
 
-
 ```{r}
 #En este apartado procedimos a sustituir los valores 9999 y 999 con NA para verificar si hay alguna diferencia en las reglas obtenidas y se aplica de nuevo el algoritmo apriori:
 
@@ -237,35 +319,72 @@ dataNA <- data %>%
   mutate(across(where(is.numeric), ~ na_if(., 9999))) %>%  
   mutate(across(where(is.numeric), ~ na_if(., 999))) 
 
-dataNA$DEPTORESIDEN[dataNA$ DEPTORESIDEN == 99] <- NA
-dataNA$MUNIRESIDEN[dataNA$ MUNIRESIDEN == "9999"] <- NA
+dataNA$CONDIEGRES[dataNA$ CONDIEGRES == 9] <- NA
+dataNA$PPERTENENCIA[dataNA$ PPERTENENCIA == 9] <- NA
 
 reglasap2 <- apriori(dataNA, parameter = list(support=0.2, confidence=0.5 ))
 reglasfAp2 <- as(reglasap2, "data.frame")
 
+```
+
+```{r}
+#Se analizó el dataset para los años 2009 a 2022 y se identificó que la variable PPERTENENCIA (Pueblo de pertenencia) no aporta mucha información, se debe considerar que hubo una variación en la clasificación después de 2018, esto genera que se presenten más reglas con las clasificaciones Indígena o No indrígena pero no hay alguna en especial que genere reglas, se decidió eliminar esta variable y aplicar de nuevo el algoritmo apriori:
+
+datasinpper <- data %>% #se esta considerando todo el dataset sin NA
+  select(-PPERTENENCIA)
+
+reglasapsinpp <- apriori(datasinpper, parameter = list(support=0.2, confidence=0.5 ))
+reglasfApsinpp <- as(reglasapsinpp, "data.frame")
+
+#Posteriormente se identificó que la variable CONDIEGRES (Condición de egreso - vivo o muerto), tampoco proporciona detalles relevantes por lo cual se elimina y se aplica apriori de nuevo:
+
+dataNA2 <- dataNA %>% #Se esta considerando el dataset con NA
+  select(-PPERTENENCIA, -CONDIEGRES)
+
+##Data NA2
+reglasap3 <- apriori(dataNA2, parameter = list(support=0.2, confidence=0.5 ))
+reglasfAp3 <- as(reglasap3, "data.frame")
+```
+
+
+
+```{r}
 ##De acuerdo con lo observado se decide filtrar el dataset solamente para considerar el sexo femenino debido a que se observa más reglas relacionadas al sexo femenino:
 dataNAM <- subset (dataNA, SEXO == 2)
 
+#Se elimina la columna sexo debido a que todos los valores serán femenino (2), para aplicar apriori es necesario que las variables no tengan un único valor:
 dataNAM2 <- dataNAM %>%
   select(-SEXO)
 
 reglasapM <- apriori(dataNAM2, parameter = list(support=0.2, confidence=0.5 ))
-reglasfAp3 <- as(reglasapM, "data.frame")
+reglasfApM <- as(reglasapM, "data.frame")
+
+##Se utiliza la dataNA sin PPERTENENCIA ni CONDINGRESO
+dataNAM3 <- subset (dataNA2, SEXO == 2)
+
+#Se elimina la columna sexo debido a que todos los valores serán femenino (2) para aplicar los algoritmos 
+dataNAM4 <- dataNAM3 %>%
+  select(-SEXO)
+
+reglasapM2 <- apriori(dataNAM4, parameter = list(support=0.2, confidence=0.5 ))
+reglasfApM2 <- as(reglasapM2, "data.frame")
+
 ```
+
 
 ```{r}
 ##De acuerdo con lo observado se decide filtrar el dataset solamente para considerar el sexo femenino, departamentos del 1 al 8 y entre los años 2018 y 2022 debido a que se observa más reglas relacionadas con estas condiciones :
-dataNAFiltro <- subset (dataNA, SEXO == 2 & DEPTORESIDEN >= 1 & DEPTORESIDEN <=8 & AÑO >= 2018 & AÑO <= 2022 )
+dataNAM5 <- subset (dataNA2, SEXO == 2 & DEPTORESIDEN >= 1 & DEPTORESIDEN <=8 & AÑO >= 2018 & AÑO <= 2022 )
 
 #Se elimina la columna sexo debido a que todos los valores serán femenino (2) para aplicar los algoritmos 
-dataNAM <- dataNAFiltro %>%
+dataNAM6 <- dataNAM5 %>%
   select(-SEXO)
 
-reglasapM <- apriori(dataNAM, parameter = list(support=0.2, confidence=0.5 ))
-reglasfAp3 <- as(reglasapM, "data.frame")
+reglasapM3 <- apriori(dataNAM6, parameter = list(support=0.2, confidence=0.5 ))
+reglasfApM4 <- as(reglasapM3, "data.frame")
 ```
 
-
+#FPGrowth
 ```{r}
 #Comenzamos a aplicar el algoritmo FPgrowth para analizar todo data set, para realizar este análisis necesitamos la librería fim4r (tomar en cuenta que para instalar esta librería se debe instalar previamente RTools de la versión correspondiente de R):
 
@@ -274,9 +393,37 @@ reglasffp <- as(reglasfp, "data.frame")
 ```
 
 ```{r}
-#Vamos a aplicar el algoritmo fpgrowth a los datos filtados dataNAM:
+#Vamos a aplicar el algoritmo fpgrowth a los datos filtados dataNAM4 en el cual filtramos sexo femenino y se no se consideran las variables de PPERTENENCIA y CONDIEGRESO:
 
-reglasfp2 <- fim4r(dataNAM, method = "fpgrowth", target="rules", supp = .2, conf = .5)
+reglasfp2 <- fim4r(dataNAM4, method = "fpgrowth", target="rules", supp = .2, conf = .5)
 reglasffp2 <- as(reglasfp2, "data.frame")
 ```
+
+
+```{r}
+#Vamos a analizar con fpgrowth los años de 2002 a 2017 y sin considerar CONDEGRESO para verificar si hay alguna regla que no se ha observado en los analisis anteriores, no se considera la variable CONDIEGRES:
+dataNAsincond <- dataNA %>%
+  select( -CONDIEGRES)
+
+dataNAños <- subset (dataNAsincond, AÑO >= 2002 & AÑO <= 2017 )
+
+reglasfp3 <- fim4r(dataNAños, method = "fpgrowth", target="rules", supp = .2, conf = .5)
+reglasffp3 <- as(reglasfp3, "data.frame")
+```
+
+#Clusteres
+```{r}
+#Para encontrar clusteres vamos a utilizar Kmeans, para iniciar se ha identificado, vamos a utilizar como base dataNA2 donde no estamos considerendo 
+dataC1 <- na.omit(dataNAsincond)
+dataC1 <- dataC1 %>%
+  select( -CAUFIN)
+
+
+
+cluster <- kmeans(dataC1, centers=4)
+
+str(dataC1)
+```
+
+
 
