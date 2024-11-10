@@ -366,6 +366,8 @@ dataNAM3 <- subset (dataNA2, SEXO == 2)
 dataNAM4 <- dataNAM3 %>%
   select(-SEXO)
 
+dataNAM7 <- dataNAM4
+
 reglasapM2 <- apriori(dataNAM4, parameter = list(support=0.2, confidence=0.5 ))
 reglasfApM2 <- as(reglasapM2, "data.frame")
 
@@ -401,7 +403,7 @@ reglasffp2 <- as(reglasfp2, "data.frame")
 
 
 ```{r}
-#Vamos a analizar con fpgrowth los años de 2002 a 2017 y sin considerar CONDEGRESO para verificar si hay alguna regla que no se ha observado en los analisis anteriores, no se considera la variable CONDIEGRES:
+#Vamos a analizar con fpgrowth los años de 2009 a 2017 y sin considerar CONDEGRESO para verificar si hay alguna regla que no se ha observado en los analisis anteriores, no se considera la variable CONDIEGRES:
 dataNAsincond <- dataNA %>%
   select( -CONDIEGRES)
 
@@ -413,17 +415,62 @@ reglasffp3 <- as(reglasfp3, "data.frame")
 
 #Clusteres
 ```{r}
-#Para encontrar clusteres vamos a utilizar Kmeans, para iniciar se ha identificado, vamos a utilizar como base dataNA2 donde no estamos considerendo 
+#Para encontrar clusteres vamos a utilizar Kmeans, para iniciar se ha identificado, vamos a utilizar como base dataNA2 donde no estamos considerendo condición de egreso y se elimina CAUFIN por ser tiepo character y no porta información al análisis:
 dataC1 <- na.omit(dataNAsincond)
 dataC1 <- dataC1 %>%
   select( -CAUFIN)
-
-
 
 cluster <- kmeans(dataC1, centers=4)
 
 str(dataC1)
 ```
+
+
+```{r}
+#Se procede a graficar los clusteres, para realizarlo es necesario contar con la libreria ggplot, se selecciona las variables que se considerarán para la gráfica con respecto al eje x y el eje y como se muestra a continuación:
+ggplot(dataC1, aes(x =AÑO, y = DIASESTANCIA, color = as.factor(cluster$cluster)))+
+  geom_point()+
+  geom_point(data = as.data.frame(cluster$centers), aes(x =AÑO, y = DIASESTANCIA), color = "black", size=4, shape=17)+
+  labs(title = "Servicios Internos - Año VS Días de estancia")+
+  theme_minimal()
+```
+
+```{r}
+ggplot(dataC1, aes(x =TRATARECIB, y = DIASESTANCIA, color = as.factor(cluster$cluster)))+
+  geom_point()+
+  geom_point(data = as.data.frame(cluster$centers), aes(x =TRATARECIB, y = DIASESTANCIA), color = "black", size=4, shape=17)+
+  labs(title = "Servicios Internos - Tratamiento recibido VS Días de estancia")+
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(dataC1, aes(x =DEPTORESIDEN, y = TRATARECIB, color = as.factor(cluster$cluster)))+
+  geom_point()+
+  geom_point(data = as.data.frame(cluster$centers), aes(x =DEPTORESIDEN, y = TRATARECIB), color = "black", size=4, shape=17)+
+  labs(title = "Servicios Internos - Departamento VS Tratamiento recibido")+
+  theme_minimal()
+```
+
+```{r}
+#Vamos a aplicar clusteres para la data filtrada para considerar únicamente el sexo femenino sin PPERTENENCIA ni CONDINGRESO:
+dataNAM7$TRATARECIB[dataNAM7$ TRATARECIB == 9] <- NA
+dataC2 <- na.omit(dataNAM7)
+dataC2 <- dataC2 %>%
+  select( -CAUFIN)
+
+cluster2 <- kmeans(dataC2, centers=4)
+```
+
+```{r}
+ggplot(dataC2, aes(x =EDADAÑOS, y = TRATARECIB, color = as.factor(cluster2$cluster)))+
+  geom_point()+
+  geom_point(data = as.data.frame(cluster$centers), aes(x =EDADAÑOS, y = TRATARECIB), color = "black", size=4, shape=17)+
+  labs(title = "Servicios Internos Sexo Femenino - Edad VS Tratamiento recibido")+
+  theme_minimal()
+```
+
+
 
 
 
